@@ -5,7 +5,8 @@ use std::{collections::HashMap, env};
 
 fn main() {
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![greet])
+    // .invoke_handler(tauri::generate_handler![greet])
+    .invoke_handler(tauri::generate_handler![get_vars])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
@@ -16,14 +17,28 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-fn getPath() -> HashMap<String, Vec<str>> {
+fn get_vars() -> HashMap<String, Vec<String>> {
+
+  // create map for variables and entries
   let mut names_and_vars = HashMap::new();
-  for (n,v) in env::vars_os() {
-    let entries_string: String = v.into_string();
-    let entries = entries_string.split(":");
-    let entries_vector: Vec<&str> = entries.collect();
-    names_and_vars.insert(n, entries_vector);
+  
+  // procedure to save all keys and vals into map
+  for (key, val) in env::vars_os() {
+    // save variable entries as a string
+    let entries_string: String = val.into_string().expect("error could not convert to string");
+    let entries = entries_string.split(":"); // split variables
+    let entries_vector: Vec<&str> = entries.collect::<Vec<&str>>(); // convert split into vector of &str
+    // convert vector of &str to vector of String
+    let mut final_entries: Vec<String> = Vec::new();
+    for i in 0..(entries_vector.len()) {
+      let element: String = entries_vector[i].to_string();
+      final_entries.push(element);
+    }
+    
+    // add to map
+    names_and_vars.insert(key.into_string().expect(""), final_entries);
   }
+
   return names_and_vars;
   
 }

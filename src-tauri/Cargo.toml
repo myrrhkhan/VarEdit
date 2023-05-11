@@ -5,7 +5,7 @@ description = "A Tauri App"
 authors = ["you"]
 license = ""
 repository = ""
-default-run = "app"
+default-run = "var_edit"
 edition = "2021"
 rust-version = "1.60"
 
