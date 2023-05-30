@@ -20,7 +20,7 @@
 <button on:click={handleClick}>Show Environment Variables</button>
 
 {#await varsPromise then allVars}
-	{#each Array.from(allVars.keys()) as key}
-	<p>key</p>
+	{#each (Object.keys(allVars)) as key}
+	<p>{key}</p>
 	{/each}
 {/await}
