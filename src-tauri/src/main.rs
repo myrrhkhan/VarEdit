@@ -5,16 +5,11 @@ use std::{collections::HashMap, env};
 
 fn main() {
   tauri::Builder::default()
-    // .invoke_handler(tauri::generate_handler![greet])
     .invoke_handler(tauri::generate_handler![get_vars])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-  format!("hi {}", name)
-}
 
 #[tauri::command]
 fn get_vars() -> HashMap<String, Vec<String>> {
