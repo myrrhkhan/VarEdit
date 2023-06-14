@@ -5,7 +5,7 @@ use std::{collections::HashMap, env};
 
 fn main() {
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![get_vars])
+    .invoke_handler(tauri::generate_handler![get_vars, add_var])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
@@ -36,4 +36,16 @@ fn get_vars() -> HashMap<String, Vec<String>> {
 
   return names_and_vars;
   
+}
+
+#[tauri::command]
+fn add_var(key: String, var: String) -> String {
+  let mut err_msg: String = String::from(""); // returns error message for frontend to process
+  if !(var.contains("\0") || var.is_empty()) {
+    env::set_var(key, var);
+  } else {
+    err_msg.push_str("Invalid input, contains null character.");
+  }
+
+  return err_msg;
 }
