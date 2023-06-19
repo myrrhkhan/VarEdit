@@ -11,9 +11,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-20.04, windows-latest, aarch64-unknown-linux-gnu]
+        settings:
+          - platform: 'macos-latest'
+            args: ''
+          - platform: 'ubuntu-20.04'
+            args: ''
+          - platform: 'ubuntu-20.04'
+            args: 'aarch64-unknown-linux-gnu'
+          - platform: 'windows-latest'
+            args: ''
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.settings.platform }}
     steps:
       - uses: actions/checkout@v3
       - name: setup node
@@ -40,3 +48,4 @@ jobs:
           releaseBody: 'See the assets to download this version and install for your operating system.'
           releaseDraft: true
           prerelease: false
+          args: ${{ matrix.settings.args }}
