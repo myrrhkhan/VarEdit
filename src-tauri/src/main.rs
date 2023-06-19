@@ -39,10 +39,10 @@ fn get_vars() -> HashMap<String, Vec<String>> {
 }
 
 #[tauri::command]
-fn add_var(key: String, var: String) -> String {
+fn add_var(key: String, var_submission: String) -> String {
   let mut err_msg: String = String::from(""); // returns error message for frontend to process
-  if !(var.contains("\0") || var.is_empty()) {
-    env::set_var(key, var);
+  if !(var_submission.contains("\0") || var_submission.is_empty()) {
+    env::set_var(key, var_submission);
   } else {
     err_msg.push_str("Invalid input, contains null character.");
   }
