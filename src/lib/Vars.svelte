@@ -13,26 +13,35 @@
 
 	function whileAddingInput(key: String) {
 		console.log("box should now show");
-		keyBeingEdited = key;
+		if (keyBeingEdited == "") {
+			keyBeingEdited = key;
+			boxLabel = "Cancel";
+		} else {
+			removeBox();
+		}
 		console.log(key == keyBeingEdited);
 	}
 
 	function removeBox() {
 		keyBeingEdited = "";
+		varSubmission = "";
+		boxLabel = "Add Variable";
 	}
 
 	// adds a new environment variable
-	async function addVar(key: String, varSubmission: String): Promise<String> {
-		let err: String = await invoke('add_var', { key: key, varSubmission: varSubmission});
+	async function addVar(variable: String, submission: String): Promise<String> {
+		console.log(submission);
+		let err: String = await invoke('add_var', { key: variable, varSubmission: submission});
 		removeBox();
 		return err;
 	}
 	
 	let varsPromise = getPath(); // promise of map containing all environment variables
 
-	let keyBeingEdited: String; // key that's being edited
+	let keyBeingEdited: String = ""; // key that's being edited
 	let varSubmission: String; // environment variable being added
-	let errPromise: String; // promise of error message
+	let boxLabel: String = "Add Variable";
+	let errPromise: Promise<String>; // promise of error message
 
 </script>
 
@@ -45,12 +54,11 @@
 		{#each values as value}
 			<li>{value}</li>
 		{/each}
-		<button on:click={() => whileAddingInput(key)}>Add Variable</button>
+		<button on:click={() => whileAddingInput(key)}>{boxLabel}</button>
 		{#if key == keyBeingEdited}
 			<form>
 				<input bind:value={varSubmission} type="text">
-				<button on:click={() => addVar(key, varSubmission)}>Add Variable</button>
-				<button on:click={removeBox}>Cancel</button>
+				<button on:click={() => errPromise = addVar(key, varSubmission)}>Submit</button>
 			</form>
 		{/if}
 	{/each}
