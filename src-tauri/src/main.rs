@@ -18,20 +18,10 @@ fn get_vars() -> HashMap<String, Vec<String>> {
   let mut names_and_vars = HashMap::new();
   
   // procedure to save all keys and vals into map
-  for (key, val) in env::vars_os() {
-    // save variable entries as a string
-    let entries_string: String = val.into_string().expect("error could not convert to string");
-    let entries = entries_string.split(":"); // split variables
-    let entries_vector: Vec<&str> = entries.collect::<Vec<&str>>(); // convert split into vector of &str
-    // convert vector of &str to vector of String
-    let mut final_entries: Vec<String> = Vec::new();
-    for i in 0..(entries_vector.len()) {
-      let element: String = entries_vector[i].to_string();
-      final_entries.push(element);
-    }
-    
-    // add to map
-    names_and_vars.insert(key.into_string().expect(""), final_entries);
+  for (key, vals) in env::vars() {
+    // convert string into vector by splitting, then map &str to String
+    let entries: Vec<String> = vals.split(":").map(str::to_string).collect();
+    names_and_vars.insert(key, entries);
   }
 
   return names_and_vars;
@@ -40,13 +30,14 @@ fn get_vars() -> HashMap<String, Vec<String>> {
 
 #[tauri::command]
 fn add_var(key: String, var_submission: String) -> String {
-  println!("invoked from the thingy");
-  println!("{}, {}", key, var_submission);
-  let mut err_msg: String = String::from(""); // returns error message for frontend to process
+  let mut err_msg: String = String::from(""); // error message for frontend to process
   if !(var_submission.contains("\0") || var_submission.is_empty()) {
     env_perm::append(key, var_submission).expect("error adding variable.");
-    println!("Success! it did the thing!");
-    err_msg = String::from("kek");
+    // let vars: HashMap<String, Vec<String>> = get_vars();
+    // let path = vars.g`et("PATH").expect("huh");
+    // let lastIdx = (path.len() as i32) - 1;
+    // let lastEl = path[lastIdx];
+    // println!("{}", lastEl);
   } else {
     err_msg.push_str("Invalid input, contains null character or is empty.");
   }
