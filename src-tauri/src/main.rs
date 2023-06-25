@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{collections::HashMap, env};
+use set_env;
 
 fn main() {
   tauri::Builder::default()
@@ -15,7 +16,7 @@ fn main() {
 fn get_vars() -> HashMap<String, Vec<String>> {
 
   // create map for variables and entries
-  let mut names_and_vars = HashMap::new();
+  let mut names_and_vars: HashMap<String, Vec<String>> = HashMap::new();
   
   // procedure to save all keys and vals into map
   for (key, vals) in env::vars() {
@@ -32,15 +33,19 @@ fn get_vars() -> HashMap<String, Vec<String>> {
 fn add_var(key: String, var_submission: String) -> String {
   let mut err_msg: String = String::from(""); // error message for frontend to process
   if !(var_submission.contains("\0") || var_submission.is_empty()) {
-    env_perm::append(key, var_submission).expect("error adding variable.");
-    // let vars: HashMap<String, Vec<String>> = get_vars();
-    // let path = vars.g`et("PATH").expect("huh");
-    // let lastIdx = (path.len() as i32) - 1;
-    // let lastEl = path[lastIdx];
-    // println!("{}", lastEl);
+    set_env::append(key, var_submission).expect("error adding variable.");
   } else {
     err_msg.push_str("Invalid input, contains null character or is empty.");
   }
+
+fn find_default_shell() {
+  let vars: HashMap<String, Vec<String>> = get_vars();
+  let mut shell: String;
+  match vars.get("SHELL") {
+    None => panic!("could not get shell"),
+    Some(shellVar) => {shell = format!("{}", (*shellVar)[0])},
+  }
+}
 
   println!("{}", err_msg);
   return err_msg;
