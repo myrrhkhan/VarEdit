@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, process::Command, path::{Path, self}, fs::{File, self}, io::Write};
 use set_env;
 
 fn main() {
@@ -38,15 +38,80 @@ fn add_var(key: String, var_submission: String) -> String {
     err_msg.push_str("Invalid input, contains null character or is empty.");
   }
 
-fn find_default_shell() {
-  let vars: HashMap<String, Vec<String>> = get_vars();
-  let mut shell: String;
-  match vars.get("SHELL") {
-    None => panic!("could not get shell"),
-    Some(shellVar) => {shell = format!("{}", (*shellVar)[0])},
-  }
-}
-
   println!("{}", err_msg);
   return err_msg;
+}
+
+/// Checks if a variable being submitted already exists, returns boolean
+/// # Arguments
+/// key: variable
+/// var_submission: desired submissions
+fn check_if_exist(key: String, var_submission: String) -> bool {
+  let status: bool;
+
+  let map: HashMap<String, Vec<String>> = get_vars();
+  let entries_option: Option<&Vec<String>> = map.get(&key);
+
+  match entries_option {
+    None => status = false,
+    Some(entries) => 
+      if entries.contains(&var_submission) {
+        status = true;
+      } else {
+        status = false;
+      }
+  }
+
+  return status;
+}
+
+#[cfg(target_os = "windows")]
+fn append(key: String, var_submission: String) -> String {
+  let output = Command::new("SetX")
+    .args([var_submission, key])
+    .output()
+    .expect("ERROR: command failed to start");
+
+  return output.status;
+}
+
+#[cfg(target_os = "linux")]
+fn append(key: String, var_submission: String) {
+
+}
+
+#[cfg(target_os = "macos")]
+fn append(key: String, var_submission: String) {
+
+}
+
+/// Checks if a file exists, and if not, creates directories and files
+/// and adds argument to file.
+/// Used for making config files or for appending to additional config files
+/// Can also be used for appending to shell profile files
+fn check_for_config_files(path_to_dir: String, filename: String, arg: String) -> String {
+  if !Path::new(&path_to_dir).exists() {
+    Command::new("mkdir")
+      .args([&path_to_dir])
+      .output()
+      .expect("ERROR: failed to make directory");
+  }
+  
+  let full_path = [path_to_dir, filename].join("/");
+
+  if !Path::new(&full_path).exists() {
+    let mut _file = File::create(&full_path);
+  }
+  let mut file = File::options()
+    .read(true)
+    .append(true)
+    .open(&full_path)
+    .expect("Error opening file.");
+
+  if let Err(e) = writeln!(file, "{}", arg) {
+    return String::from("Couldn't write to file");
+  } else {
+    return String::from("Write successful");
+  }
+  
 }
