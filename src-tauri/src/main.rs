@@ -1,7 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{collections::HashMap, env, process::Command, path::{Path, self}, fs::{File, self}, io::Write};
+use std::{collections::HashMap, env, process::Command, path::{Path}, fs::{File, self}};
+use serde_json::{Value, Error};
 use set_env;
 
 fn main() {
@@ -46,7 +47,7 @@ fn add_var(key: String, var_submission: String) -> String {
 /// # Arguments
 /// key: variable
 /// var_submission: desired submissions
-fn check_if_exist(key: String, var_submission: String) -> bool {
+fn check_if_var_duplicate(key: String, var_submission: String) -> bool {
   let status: bool;
 
   let map: HashMap<String, Vec<String>> = get_vars();
@@ -76,7 +77,7 @@ fn append(key: String, var_submission: String) -> String {
 }
 
 #[cfg(target_os = "linux")]
-fn append(key: String, var_submission: String) {
+fn append(key: String, var_submission: String) -> String {
 
 }
 
@@ -85,11 +86,10 @@ fn append(key: String, var_submission: String) {
 
 }
 
-/// Checks if a file exists, and if not, creates directories and files
-/// and adds argument to file.
-/// Used for making config files or for appending to additional config files
-/// Can also be used for appending to shell profile files
-fn check_for_config_files(path_to_dir: String, filename: String, arg: String) -> String {
+/// Template for making configuration files
+fn check_for_file(path_to_dir: &str, filename: &str) {
+
+  // check if directory exists, if not make the directory
   if !Path::new(&path_to_dir).exists() {
     Command::new("mkdir")
       .args([&path_to_dir])
@@ -97,21 +97,20 @@ fn check_for_config_files(path_to_dir: String, filename: String, arg: String) ->
       .expect("ERROR: failed to make directory");
   }
   
+  // Establish full path as a variable
   let full_path = [path_to_dir, filename].join("/");
 
+  // if a file doesn't exist, make the file
   if !Path::new(&full_path).exists() {
-    let mut _file = File::create(&full_path);
-  }
-  let mut file = File::options()
-    .read(true)
-    .append(true)
-    .open(&full_path)
-    .expect("Error opening file.");
+    File::create(&full_path).expect("Couldn't create file");
+  }  
+}
 
-  if let Err(e) = writeln!(file, "{}", arg) {
-    return String::from("Couldn't write to file");
-  } else {
-    return String::from("Write successful");
+fn gather_setting(settings_path: &str, key: &str) -> Option<String> {
+  let settings_text: String = fs::read_to_string(settings_path).expect("Unable to read file");
+  let json_result: Result<Value, Error> = serde_json::from_str(&settings_text);
+  match json_result {
+    Err(err) => return None,
+    Ok(json) => return Some(json[key].to_string()),
   }
-  
 }
