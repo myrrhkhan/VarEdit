@@ -82,12 +82,41 @@ fn append(key: String, var_submission: String) -> String {
 }
 
 #[cfg(target_os = "macos")]
-fn append(key: String, var_submission: String) {
+fn append(key: String, var_submission: String) -> String {
+  // make settings file if not already made
+  let file_status: Option<String> = check_and_make_file(
+    "~/.config/varedit", 
+    "settings.json"
+  );
+
+  if file_status == None {
+    // TODO: add code to write template to settings file
+    return String::from("Settings file created. Please add settings.");
+  }
+
+  let shell_profile = gather_setting(
+    "~/.config/varedit", 
+    "shell_profile"
+  );
+
+  match shell_profile {
+    None => return String::from("Shell profile blank."),
+    Some(path) => return path
+  }
+
 
 }
 
-/// Template for making configuration files
-fn check_for_file(path_to_dir: &str, filename: &str) {
+/// Check if a file exists, and if not, make one
+/// ### Arguments:
+/// - path_to_dir: path to directory (do not include "/")
+/// - filename: name of file
+/// ### Returns
+/// Option<String>, either a blank string if file existed, or None if a file didn't exist
+/// ### Panics:
+/// - whenever directory could not be made
+/// - whenever file could not be made
+fn check_and_make_file(path_to_dir: &str, filename: &str) -> Option<String> {
 
   // check if directory exists, if not make the directory
   if !Path::new(&path_to_dir).exists() {
@@ -103,12 +132,27 @@ fn check_for_file(path_to_dir: &str, filename: &str) {
   // if a file doesn't exist, make the file
   if !Path::new(&full_path).exists() {
     File::create(&full_path).expect("Couldn't create file");
-  }  
+    return None;
+  }
+
+  return Some(String::from(""));  
 }
 
+/// Reads the JSON settings file, finds the value for a setting, and returns it
+/// This program re-reads the JSON file every time a setting is needed in case the file is edited during runtime
+/// ### Arguments
+/// - settings_path: path to JSON file
+/// - key: the setting that should be gathered
+/// ### Returns:
+/// The setting value, or None if not found
+/// ### Panics
+/// Panics whenever the JSON file can't be read, either because the path is wrong or it can't parse the file.
 fn gather_setting(settings_path: &str, key: &str) -> Option<String> {
+  // read JSON to string
   let settings_text: String = fs::read_to_string(settings_path).expect("Unable to read file");
+  // Convert string to Value type
   let json_result: Result<Value, Error> = serde_json::from_str(&settings_text);
+  // find key, or return none
   match json_result {
     Err(err) => return None,
     Ok(json) => return Some(json[key].to_string()),
