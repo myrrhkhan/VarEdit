@@ -1,9 +1,27 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{collections::HashMap, env, process::Command, path::{Path}, fs::{File, self}};
-use serde_json::{Value, Error};
+use std::{collections::HashMap, env, process::Command, path::{Path}, fs::{File, self}, fmt};
 use set_env;
+
+#[derive(Debug)]
+pub enum ModificationError {
+  JSONParseError,
+  MakeDirError,
+  MakeFileError,
+  EmptySettingsError
+}
+impl std::error::Error for ModificationError {}
+impl fmt::Display for ModificationError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Self::JSONParseError => write!(f, "Value not found in JSON file"),
+      Self::MakeDirError => write!(f, "Could not make a directory. Please see help page and make the directory."),
+      Self::MakeFileError => write!(f, "Could not make desired file. Please see help page and make the file."),
+      Self::EmptySettingsError => write!(f, "Empty settings file. Please fill out settings first.")
+    }
+  }
+}
 
 fn main() {
   tauri::Builder::default()
@@ -81,27 +99,18 @@ fn append(key: String, var_submission: String) -> String {
 
 }
 
+
 #[cfg(target_os = "macos")]
-fn append(key: String, var_submission: String) -> String {
+fn append(key: String, var_submission: String) -> Result<String, ModificationError> {
   // make settings file if not already made
-  let file_status: Option<String> = check_and_make_file(
+  let file_status = check_and_make_file(
     "~/.config/varedit", 
     "settings.json"
   );
 
-  if file_status == None {
-    // TODO: add code to write template to settings file
-    return String::from("Settings file created. Please add settings.");
-  }
-
-  let shell_profile = gather_setting(
-    "~/.config/varedit", 
-    "shell_profile"
-  );
-
-  match shell_profile {
-    None => return String::from("Shell profile blank."),
-    Some(path) => return path
+  match file_status {
+    Some(error) => return Err(error),
+    None => return gather_setting("~/.config/varedit", "shell_profile")
   }
 
 
@@ -112,18 +121,24 @@ fn append(key: String, var_submission: String) -> String {
 /// - path_to_dir: path to directory (do not include "/")
 /// - filename: name of file
 /// ### Returns
-/// Option<String>, either a blank string if file existed, or None if a file didn't exist
+/// Option<ModificationError>, where it'll either return an error or None if everything worked smoothly
 /// ### Panics:
 /// - whenever directory could not be made
 /// - whenever file could not be made
-fn check_and_make_file(path_to_dir: &str, filename: &str) -> Option<String> {
+fn check_and_make_file(path_to_dir: &str, filename: &str) -> Option<ModificationError> {
 
   // check if directory exists, if not make the directory
   if !Path::new(&path_to_dir).exists() {
-    Command::new("mkdir")
+    let mkdir_status = Command::new("mkdir")
       .args([&path_to_dir])
       .output()
-      .expect("ERROR: failed to make directory");
+      .map_err(|_| ModificationError::MakeDirError);
+    match mkdir_status {
+      // return error if could not make directory
+      Err(error) => return Some(error),
+      // if ok, ignore output and continue function
+      Ok(_) => ()
+    }
   }
   
   // Establish full path as a variable
@@ -132,10 +147,10 @@ fn check_and_make_file(path_to_dir: &str, filename: &str) -> Option<String> {
   // if a file doesn't exist, make the file
   if !Path::new(&full_path).exists() {
     File::create(&full_path).expect("Couldn't create file");
-    return None;
+    return Some(ModificationError::EmptySettingsError);
   }
 
-  return Some(String::from(""));  
+  return None;  
 }
 
 /// Reads the JSON settings file, finds the value for a setting, and returns it
@@ -144,17 +159,14 @@ fn check_and_make_file(path_to_dir: &str, filename: &str) -> Option<String> {
 /// - settings_path: path to JSON file
 /// - key: the setting that should be gathered
 /// ### Returns:
-/// The setting value, or None if not found
-/// ### Panics
-/// Panics whenever the JSON file can't be read, either because the path is wrong or it can't parse the file.
-fn gather_setting(settings_path: &str, key: &str) -> Option<String> {
+/// The setting value as a String, or an Error
+/// ### Panics:
+/// - If the settings file could not be found or read into a JSON
+fn gather_setting(settings_path: &str, key: &str) -> Result<String, ModificationError> {
   // read JSON to string
-  let settings_text: String = fs::read_to_string(settings_path).expect("Unable to read file");
-  // Convert string to Value type
-  let json_result: Result<Value, Error> = serde_json::from_str(&settings_text);
-  // find key, or return none
-  match json_result {
-    Err(err) => return None,
-    Ok(json) => return Some(json[key].to_string()),
-  }
+  let settings_text: String = fs::read_to_string(settings_path).expect("Could not find file or read from file");
+  // Parse JSON string, return the resulting string or return a JSONParseError
+  let json_result: Result<String, ModificationError> = 
+    (serde_json::from_str(&settings_text)).map_err(|_| ModificationError::JSONParseError);
+  return json_result;
 }
