@@ -20,29 +20,48 @@ pub fn get_vars() -> HashMap<String, Vec<String>> {
   
 }
 
+
+/// Command to add an environment variable.
+/// ### Arguments:
+/// - key (String)
+/// - var_submission (String)
+/// ### Returns
+/// Either a success message or an error message
+/// ### Types of Errors
+/// - JSONParseError, when a settings value is not found in settings.json
+/// - MakeDirError, when the program is unable to make a dedicated directory when making a new settings.json file
+/// - MakeFileError, when the program is unable to create a file
+/// - EmptySettingsError, when settings.json is empty and the program is awaiting the user to add all settings.
+/// - ProfileOpenError, when the program is unable to open a shell profile
+/// - WriteToFileError, when the program is unable to write to a file (usually the shell profile file)
 #[tauri::command]
-pub fn add_var(key: String, var_submission: String) {
-  let mut err_msg: String = String::from(""); // error message for frontend to process
+pub fn add_var(key: String, var_submission: String) -> Result<String, String> {
+  // check if null or empty
   if !(var_submission.contains("\0") || var_submission.is_empty()) {
-    let duplicate = check_if_var_duplicate(&key, &var_submission);
+    // check if variable is already there, if so, return
+    let duplicate: bool = check_if_var_duplicate(&key, &var_submission);
     if duplicate {
-      return;
+      return Ok(String::from("Variable has been added already"));
     }
-    let append_status = append(&key, &var_submission);
+    // Try to append variable
+    let append_status: Option<ModificationError> = append(&key, &var_submission);
+    // handle possible error
     match append_status {
-      Some(_) => return,
-      None => return
+      Some(error) => return Err(error.to_string()),
+      None => return Ok(String::from("Variable added successfully."))
     }
   } else {
-    err_msg.push_str("Invalid input, contains null character or is empty.");
+      return Ok(String::from("Invalid input, contains null character or is empty."));
   }
 }
 
 
 /// Checks if a variable being submitted already exists, returns boolean
-/// # Arguments
+/// ### Arguments
 /// key: variable
 /// var_submission: desired submissions
+/// ### Returns:
+/// boolean, true if duplicate, false if not
 fn check_if_var_duplicate(key: &String, var_submission: &String) -> bool {
 	let status: bool;
   
@@ -77,7 +96,12 @@ fn append(key: String, var_submission: String) -> String {
 
 }
 
-
+/// Appends the key and environment variable
+/// ### Arguments:
+/// - key
+/// - var_submission
+/// ### Returns:
+/// None if no error, or an error
 #[cfg(target_os = "macos")]
 fn append(key: &String, var_submission: &String) -> Option<ModificationError> {
   // make settings file if not already made
@@ -109,13 +133,22 @@ use crate::settings_utils::{check_and_make_file, gather_setting};
   }
 }
 
+/// Writes the environment variable to the shell profile
+/// ### Arguments:
+/// - shell_path_string: path to the shell profile setting
+/// - key: variable key to be modified
+/// - var_submission: variable to be added
+/// ### Returns:
+/// - None (when done successfully)
+/// - ProfileOpenError (when the program is unable to open the shell profile)
+/// - WriteToFileError (error when shell file could not be written to)
 fn write_to_file (shell_string: String, key: &String, var_submission: &String) -> Option<ModificationError> {
   let file_status = fs::OpenOptions::new()
     .append(true)
     .open(shell_string);
 
   match file_status {
-    Err(_) => return Some(ModificationError::BashFileOpenError),
+    Err(_) => return Some(ModificationError::ProfileOpenError),
     Ok(_) => ()
   }
 
