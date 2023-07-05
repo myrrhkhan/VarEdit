@@ -3,6 +3,8 @@ use std::io::Write;
 use std::{collections::HashMap, env};
 use crate::errors::*;
 use crate::settings_utils::*;
+#[allow(dead_code)]
+use std::process::Command;
 
 #[tauri::command]
 pub fn get_vars() -> HashMap<String, Vec<String>> {
@@ -77,18 +79,32 @@ fn check_if_var_duplicate(key: &String, var_submission: &String) -> bool {
 	return status;
   }
 
+#[allow(dead_code)]
 #[cfg(target_os = "windows")]
-fn append(key: String, var_submission: String) -> String {
+fn append(key: &String, var_submission: &String) -> Result<String, String> {
   let output = Command::new("SetX")
     .args([var_submission, key])
     .output()
-    .expect("ERROR: command failed to start");
+    .map_err(|err| construct_err_msg!(cmd_fail_start!(), err.to_string()))?;
 
-  return output.status;
+  return Ok(String::from(add_var_success!()));
+
 }
 
+#[allow(dead_code)]
 #[cfg(target_os = "linux")]
-fn append(key: String, var_submission: String) -> String {
+fn append(key: &String, var_submission: &String) -> Result<String, String> {
+
+  // make settings file if not already made, return any errors
+  check_and_make_file("/etc/varedit", "settings.json")?;
+
+  // get shell profile path from settings
+  let shell_string = gather_setting(
+    "/etc/varedit/settings.json", 
+    "shell_profile"
+  )?;
+
+  return write_to_file(shell_string, &key, &var_submission);
 
 }
 

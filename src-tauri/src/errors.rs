@@ -1,4 +1,3 @@
-// #[macro_export]
 macro_rules! construct_err_msg {
   ($message:expr, $full_error:expr) => { 
     format!("{}\nFull Error:\n{}", $message, $full_error) 
@@ -13,7 +12,6 @@ macro_rules! mkdir_err {
         )
     };
 }
-// #[macro_export]
 macro_rules! make_file_err {
     ($path:expr) => {
         format!(
@@ -22,7 +20,6 @@ macro_rules! make_file_err {
         )
     };
 }
-// #[macro_export]
 macro_rules! profile_err {
     ($path:expr) => {
         format!(
@@ -39,7 +36,6 @@ macro_rules! settings_read_error {
     )
   }
 }
-// #[macro_export]
 macro_rules! write_file_err {
     ($content:expr, $path:expr) => {
         format!(
@@ -50,22 +46,26 @@ macro_rules! write_file_err {
     };
 }
 // the following macros don't take arguments, but i'm still using macros for the sake of consistency anyway
-// #[macro_export]
 macro_rules! json_parse_err {
     () => {
       "Value not found in settings file. Please open the settings page and ensure that all settings are set. View help for more info." 
     };
 }
-// #[macro_export]
 macro_rules! empty_settings_err {
   () => {
     "Settings file is empty. Please fill out all settings before trying again."
   };
 }
-// #[macro_export]
 macro_rules! add_var_success {
     () => {
       "Variable added successfully!"
+    };
+}
+
+#[allow(dead_code)]
+macro_rules! cmd_fail_start {
+    () => {
+        "Command failed to run"
     };
 }
 
@@ -78,3 +78,5 @@ pub(crate) use write_file_err;
 pub(crate) use json_parse_err;
 pub(crate) use empty_settings_err;
 pub(crate) use add_var_success;
+#[allow(dead_code)]
+pub(crate) use cmd_fail_start;
