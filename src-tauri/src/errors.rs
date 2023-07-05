@@ -1,33 +1,80 @@
-use std::fmt::{self};
-
-pub const JSON_PARSE_ERROR: &str = "Value not found in settings file. Please open the settings page and ensure that all settings are set. View help for more info.";
-pub const MAKE_DIR_ERROR: &str = "Could not make a directory at {}. Please see the help page and follow instructions on making a settings directory.";
-pub const MAKE_FILE_ERROR: &str = "Could not make desired file {}. Please see the help page and follow the steps to diagnose.";
-pub const EMPTY_SETTINGS_ERROR: &str = "Settings file is empty. Please fill out all settings before trying again.";
-pub const PROFILE_OPEN_ERROR: &str = "Could not open shell profile ({}). Please check that the shell profile setting points to the right file and try again.";
-pub const WRITE_TO_FILE_ERROR: &str = "Could not write to file {}. Please write manually";
-
-#[derive(Debug)]
-pub enum ModificationError {
-	JSONParseError,
-	MakeDirError,
-	MakeFileError,
-	EmptySettingsError,
-  ProfileOpenError,
-  WriteToFileError
-}
-
-
-impl std::error::Error for ModificationError {}
-impl fmt::Display for ModificationError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      Self::JSONParseError => write!(f, "Value not found in JSON file"),
-      Self::MakeDirError => write!(f, "Could not make a directory. Please see help page and make the directory."),
-      Self::MakeFileError => write!(f, "Could not make desired file. Please see help page and make the file."),
-      Self::EmptySettingsError => write!(f, "Empty settings file. Please fill out settings first."),
-      Self::ProfileOpenError => write!(f, "Could not open the shell profile. Check settings and try again."),
-      Self::WriteToFileError => write!(f, "Could not write to file")
-    }
+// #[macro_export]
+macro_rules! construct_err_msg {
+  ($message:expr, $full_error:expr) => { 
+    format!("{}\nFull Error:\n{}", $message, $full_error) 
   }
 }
+// #[macro_export]
+macro_rules! mkdir_err {
+    ($dir:expr) => {
+        format!(
+          "Could not make a directory at {}. Please see the help page and follow instructions on making a settings directory.",
+          $dir
+        )
+    };
+}
+// #[macro_export]
+macro_rules! make_file_err {
+    ($path:expr) => {
+        format!(
+          "Could not make desired file at {}. Please see the help page and follow the steps to diagnose.",
+          $path
+        )
+    };
+}
+// #[macro_export]
+macro_rules! profile_err {
+    ($path:expr) => {
+        format!(
+          "Could not open shell profile ({}). Please check that the shell profile setting points to the right file and try again.",
+          $path
+        )
+    };
+}
+macro_rules! settings_read_error {
+  ($path:expr) => {
+    format!(
+      "Could not find or read from settings file at {}. Please make sure the file exists, run the program as sudo/admin, and try again",
+      $path
+    )
+  }
+}
+// #[macro_export]
+macro_rules! write_file_err {
+    ($content:expr, $path:expr) => {
+        format!(
+          "Could not write the message \"{}\" to file {}. Please write manually",
+          $content,
+          $path
+        )
+    };
+}
+// the following macros don't take arguments, but i'm still using macros for the sake of consistency anyway
+// #[macro_export]
+macro_rules! json_parse_err {
+    () => {
+      "Value not found in settings file. Please open the settings page and ensure that all settings are set. View help for more info." 
+    };
+}
+// #[macro_export]
+macro_rules! empty_settings_err {
+  () => {
+    "Settings file is empty. Please fill out all settings before trying again."
+  };
+}
+// #[macro_export]
+macro_rules! add_var_success {
+    () => {
+      "Variable added successfully!"
+    };
+}
+
+pub(crate) use construct_err_msg;
+pub(crate) use mkdir_err;
+pub(crate) use make_file_err;
+pub(crate) use profile_err;
+pub(crate) use settings_read_error;
+pub(crate) use write_file_err;
+pub(crate) use json_parse_err;
+pub(crate) use empty_settings_err;
+pub(crate) use add_var_success;

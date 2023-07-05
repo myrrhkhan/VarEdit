@@ -1,7 +1,8 @@
-use std::fs::{self, File};
+use std::fs::{self};
 use std::io::Write;
 use std::{collections::HashMap, env};
-use crate::errors::ModificationError;
+use crate::errors::*;
+use crate::settings_utils::*;
 
 #[tauri::command]
 pub fn get_vars() -> HashMap<String, Vec<String>> {
@@ -44,14 +45,9 @@ pub fn add_var(key: String, var_submission: String) -> Result<String, String> {
       return Ok(String::from("Variable has been added already"));
     }
     // Try to append variable
-    let append_status: Option<ModificationError> = append(&key, &var_submission);
-    // handle possible error
-    match append_status {
-      Some(error) => return Err(error.to_string()),
-      None => return Ok(String::from("Variable added successfully."))
-    }
+    return append(&key, &var_submission);
   } else {
-      return Ok(String::from("Invalid input, contains null character or is empty."));
+      return Err(String::from("Invalid input, contains null character or is empty."));
   }
 }
 
@@ -101,36 +97,20 @@ fn append(key: String, var_submission: String) -> String {
 /// - key
 /// - var_submission
 /// ### Returns:
-/// None if no error, or an error
+/// A success string or an error message string
 #[cfg(target_os = "macos")]
-fn append(key: &String, var_submission: &String) -> Option<ModificationError> {
-  // make settings file if not already made
+fn append(key: &String, var_submission: &String) -> Result<String, String> {
+  
+  // make settings file if not already made, return any errors
+  check_and_make_file("~/.config/varedit", "settings.json")?;
 
-use crate::settings_utils::{check_and_make_file, gather_setting};
-  let file_status = check_and_make_file(
-    "~/.config/varedit", 
-    "settings.json"
-  );
-
-  // check if settings file could be made
-  match file_status {
-    Some(error) => return Some(error), // if not return
-    // if so, get the setting and add
-    None => ()
-  }
-
-  let shell_string_status = gather_setting(
+  // get shell profile path from settings
+  let shell_string = gather_setting(
     "~/.config/varedit/settings.json", 
     "shell_profile"
-  );
+  )?;
 
-  match shell_string_status {
-    Err(error) => return Some(error),
-    Ok(shell_string) => {
-      write_to_file(shell_string, &key, &var_submission);
-      return None;
-    }
-  }
+  return write_to_file(shell_string, &key, &var_submission);
 }
 
 /// Writes the environment variable to the shell profile
@@ -139,33 +119,35 @@ use crate::settings_utils::{check_and_make_file, gather_setting};
 /// - key: variable key to be modified
 /// - var_submission: variable to be added
 /// ### Returns:
-/// - None (when done successfully)
-/// - ProfileOpenError (when the program is unable to open the shell profile)
-/// - WriteToFileError (error when shell file could not be written to)
-fn write_to_file (shell_string: String, key: &String, var_submission: &String) -> Option<ModificationError> {
-  let file_status = fs::OpenOptions::new()
+/// - String indicating status
+fn write_to_file (shell_path: String, key: &String, var_submission: &String) -> Result<String, String> {
+  // open file
+  let mut file = fs::OpenOptions::new()
     .append(true)
-    .open(shell_string);
-
-  match file_status {
-    Err(_) => return Some(ModificationError::ProfileOpenError),
-    Ok(_) => ()
-  }
-
-  // get file
-  let mut file: File = file_status.unwrap();
+    .open(&shell_path)
+    // if there's an error, convert error into a string using macros and return
+    .map_err(|err| construct_err_msg!(profile_err!(&shell_path), err.to_string()))?;
+  
   // make string to add to end of file
-  let export_cmd = format!(
+  let export_cmd: String = format!(
     "export {}=${}:{}", 
-    key, 
-    key, 
-    var_submission
+    &key, 
+    &key, 
+    &var_submission
   );
 
-  let write_status = file.write(export_cmd.as_bytes());
+  file
+    .write(export_cmd.as_bytes())
+    .map_err(
+      |err| 
+      construct_err_msg!(
+        write_file_err!(
+          &export_cmd, 
+          &shell_path
+        ), 
+        err.to_string()
+      ))?;
   
-  match write_status {
-    Err(_) => return Some(ModificationError::WriteToFileError),
-    Ok(_) => return None
-  }
+  // if this point is reached, return success string
+  return Ok(String::from(add_var_success!()));
 }
