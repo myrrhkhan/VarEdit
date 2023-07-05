@@ -31,9 +31,10 @@
 	// adds a new environment variable
 	async function addVar(variable: String, submission: String): Promise<String> {
 		console.log(submission);
-		let err: String = await invoke('add_var', { key: variable, varSubmission: submission});
+		let message: String = await invoke('add_var', { key: variable, varSubmission: submission});
 		removeBox();
-		return err;
+		alert(message);
+		return message;
 	}
 	
 	let varsPromise = getPath(); // promise of map containing all environment variables

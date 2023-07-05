@@ -47,6 +47,11 @@ pub fn add_var(key: String, var_submission: String) -> Result<String, String> {
       return Ok(String::from("Variable has been added already"));
     }
     // Try to append variable
+    let result = append(&key, &var_submission);
+    match result {
+      Ok(msg) => println!("{}", msg),
+      Err(err_msg) => println!("{}", err_msg)
+    }
     return append(&key, &var_submission);
   } else {
       return Err(String::from("Invalid input, contains null character or is empty."));
