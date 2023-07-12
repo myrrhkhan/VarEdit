@@ -30,10 +30,15 @@
 
 	// adds a new environment variable
 	async function addVar(variable: String, submission: String): Promise<String> {
-		console.log(submission);
-		let message: String = await invoke('add_var', { key: variable, varSubmission: submission});
-		removeBox();
+		let message: String = "";
+		console.log("About to receive message")
+		await invoke('add_var', { key: variable, varSubmission: submission})
+			.then((return_val) => { message = return_val as string })
+			.catch((err_msg) => { message = err_msg });
+		console.log("about to alert");
 		alert(message);
+		// alert(message);
+		removeBox();
 		return message;
 	}
 	
@@ -42,7 +47,6 @@
 	let keyBeingEdited: String = ""; // key that's being edited
 	let varSubmission: String; // environment variable being added
 	let boxLabel: String = "Add Variable";
-	let errPromise: Promise<String>; // promise of error message
 
 </script>
 
@@ -59,7 +63,7 @@
 		{#if key == keyBeingEdited}
 			<form>
 				<input bind:value={varSubmission} type="text">
-				<button on:click={() => errPromise = addVar(key, varSubmission)}>Submit</button>
+				<button on:click={() => addVar(key, varSubmission)}>Submit</button>
 			</form>
 		{/if}
 	{/each}
