@@ -10,11 +10,36 @@ use crate::errors::*;
 pub fn check_and_make_file(path_to_dir: &str, filename: &str) -> Result<String, String> {
 
   // check if directory exists, if not make the directory
-  if !Path::new(&path_to_dir).exists() {
-    Command::new("mkdir")
-      .args([&path_to_dir])
-      .output()
-      .map_err(|err| construct_err_msg!(mkdir_err!(&path_to_dir), err.to_string()))?;
+  if !(Path::new(&path_to_dir).is_dir()) {
+
+    // split path into individual folders
+    let folders = path_to_dir.split("/");
+
+    // make a string to keep track of the current working directory
+    let mut current_dir: String = String::from(".");
+
+    // iterate through folders and make them
+    for folder in folders {
+
+      // add current folder to working directory
+      current_dir = format!("{}/{}", current_dir, folder);
+      
+      // if directory doesn't exist, make it
+      if !Path::new(&current_dir).exists() {
+        Command::new("mkdir")
+          .args([&current_dir])
+          .output()
+          .map_err(
+            |err| 
+            construct_err_msg!(
+              mkdir_err!(&path_to_dir), 
+              err.to_string()
+            )
+          )?; // convert error to string and return
+      }
+
+      println!("The path {} exists", &current_dir);
+    }
   }
   
   // Establish full path as a variable
