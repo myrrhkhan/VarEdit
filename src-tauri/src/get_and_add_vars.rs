@@ -1,9 +1,11 @@
 use std::fs::{self};
 use std::io::Write;
 use std::{collections::HashMap, env};
+use std::path::PathBuf;
+use dirs::home_dir;
 use crate::errors::*;
 use crate::settings_utils::*;
-#[allow(dead_code)]
+#[allow(dead_code, unused_imports)]
 use std::process::Command;
 
 #[tauri::command]
@@ -101,7 +103,7 @@ fn append(key: &String, var_submission: &String) -> Result<String, String> {
 fn append(key: &String, var_submission: &String) -> Result<String, String> {
 
   // make settings file if not already made, return any errors
-  check_and_make_file("/etc/varedit", "settings.json")?;
+  check_and_make_file(PathBuf::from("/etc/varedit/"), "settings.json")?;
 
   // get shell profile path from settings
   let shell_string = gather_setting(
@@ -122,8 +124,13 @@ fn append(key: &String, var_submission: &String) -> Result<String, String> {
 #[cfg(target_os = "macos")]
 fn append(key: &String, var_submission: &String) -> Result<String, String> {
   
+  // establish path to settings directory
+
+  let mut path_to_dir: PathBuf = home_dir().unwrap();
+  path_to_dir.push(".config/varedit");
+
   // make settings file if not already made, return any errors
-  check_and_make_file("~/.config/varedit", "settings.json")?;
+  check_and_make_file(path_to_dir, "settings.json")?;
 
   // get shell profile path from settings
   let shell_string = gather_setting(

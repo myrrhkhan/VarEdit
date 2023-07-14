@@ -1,4 +1,4 @@
-use std::{path::Path, process::Command, fs};
+use std::{path::{Path, PathBuf}, process::Command, fs, thread::current};
 use crate::errors::*;
 
 /// Check if a file exists, and if not, make one
@@ -7,22 +7,19 @@ use crate::errors::*;
 /// - filename: name of file
 /// ### Returns
 /// Either an empty string if the file exists or was successfully made, or an error message as a String
-pub fn check_and_make_file(path_to_dir: &str, filename: &str) -> Result<String, String> {
-
+pub fn check_and_make_file(mut path_to_dir: PathBuf, filename: &str) -> Result<String, String> {
+  
   // check if directory exists, if not make the directory
-  if !(Path::new(&path_to_dir).is_dir()) {
+  if !&path_to_dir.is_dir() {
 
-    // split path into individual folders
-    let folders = path_to_dir.split("/");
-
-    // make a string to keep track of the current working directory
-    let mut current_dir: String = String::from(".");
-
+    // make a path to keep track of working directory
+    let mut current_dir: PathBuf = PathBuf::new();
+    
     // iterate through folders and make them
-    for folder in folders {
+    for folder in &path_to_dir {
 
       // add current folder to working directory
-      current_dir = format!("{}/{}", current_dir, folder);
+      let current_dir: PathBuf = current_dir.join(PathBuf::from(folder));
       
       // if directory doesn't exist, make it
       if !Path::new(&current_dir).exists() {
@@ -32,27 +29,34 @@ pub fn check_and_make_file(path_to_dir: &str, filename: &str) -> Result<String, 
           .map_err(
             |err| 
             construct_err_msg!(
-              mkdir_err!(&path_to_dir), 
+              mkdir_err!(&current_dir.into_os_string().clone().into_string().unwrap()), 
               err.to_string()
             )
           )?; // convert error to string and return
       }
 
-      println!("The path {} exists", &current_dir);
+      println!("The path {} exists", &current_dir.clone().into_os_string().into_string().unwrap());
     }
   }
   
-  // Establish full path as a variable
-  let full_path = [path_to_dir, filename].join("/");
+  // Add filename to make full string
+  path_to_dir.push(filename);
 
   // if a file doesn't exist, make the file or return the error
-  if !Path::new(&full_path).exists() {
-    fs::File::create(&full_path).map_err(
+  if !&path_to_dir.exists() {
+    fs::File::create(&path_to_dir).map_err(
       |err| 
       construct_err_msg!(
-        make_file_err!(&full_path), err.to_string()
+        make_file_err!(
+          &path_to_dir
+            .clone()
+            .into_os_string()
+            .into_string()
+            .unwrap()
+          ), err.to_string()
       )
     )?;
+    // TODO: MAKE SETTINGS.JSON FILE HERE
     return Err(String::from(empty_settings_err!()));
   }
 
